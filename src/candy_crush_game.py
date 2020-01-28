@@ -1,4 +1,5 @@
 """Pygame controller for the game."""
+import math
 import pygame
 import sys
 import utils
@@ -43,14 +44,32 @@ def main():
     n = len(board[0])
     for row in range(n):
       for col in range(n):
+        coords = indices_to_screen(row, col, from_human)
         color = -1
         for i in range(len(utils.COLORS)):
           if board[i][row][col]:
             color = i
             break
         if color != -1:
-          pygame.draw.circle(screen, pygame.color.Color(utils.COLORS[color]), indices_to_screen(row, col, from_human), H_CELLSIZE, 0)
-          # TODO(bowendeng): Enables other types of candies.
+          special = ''
+          for i in range(len(utils.COLORS), len(utils.COLUMNS)):
+            if board[i][row][col]:
+              special = utils.COLUMNS[i]
+              break
+          pygame_color = pygame.color.Color(utils.COLORS[color])
+          if special == '':
+            pygame.draw.circle(screen, pygame_color, coords, H_CELLSIZE, 0)
+          elif special == 'v_strip':
+            pygame.draw.ellipse(screen, pygame_color, [coords[0] - H_CELLSIZE // 2, coords[1] - H_CELLSIZE, H_CELLSIZE, H_CELLSIZE * 2], 0)
+          elif special == 'h_strip':
+            pygame.draw.ellipse(screen, pygame_color, [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE // 2, H_CELLSIZE * 2, H_CELLSIZE], 0)
+          else:
+            pygame.draw.rect(screen, pygame_color, [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE, H_CELLSIZE, H_CELLSIZE], 0)
+        else:
+          pygame.draw.arc(screen, (0, 0, 0), [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE, H_CELLSIZE * 2, H_CELLSIZE * 2], 0, math.pi / 2, 2)
+          pygame.draw.arc(screen, (0, 255, 0), [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE, H_CELLSIZE * 2, H_CELLSIZE * 2], math.pi / 2, math.pi, 2)
+          pygame.draw.arc(screen, (0, 0, 255), [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE, H_CELLSIZE * 2, H_CELLSIZE * 2], math.pi, 3 * math.pi / 2, 2)
+          pygame.draw.arc(screen, (255, 0, 0), [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE, H_CELLSIZE * 2, H_CELLSIZE * 2], 3 * math.pi / 2, 2 * math.pi, 2)
   previous_row, previous_col = -1, -1
   draw_histories = True
   while True:
@@ -81,7 +100,6 @@ def main():
       draw_histories = False
     if pygame.time.get_ticks() < time_to_stop_draw_histories:
       idx = (pygame.time.get_ticks() - time_to_start_draw_histories) // PAUSE
-      print(idx)
       draw_board(screen, human_histories[idx] if idx < len(human_histories) else human_board.get_board(), from_human=True)
       draw_board(screen, computer_histories[idx] if idx < len(computer_histories) else computer_board.get_board(), from_human=False)
       pygame.display.flip()
