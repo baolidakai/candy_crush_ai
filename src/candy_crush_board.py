@@ -1,5 +1,6 @@
 """Class for Candy Crush game."""
 import collections
+import copy
 import utils
 import numpy as np
 
@@ -121,8 +122,12 @@ class CandyCrushBoard(object):
       self._board[new_color][0][col] = 1
     # TODO(bowendeng): Implements correctly.
     self._reward += len(block)
-    self._histories.append(self._board)
+    self._histories.append(self.copy_board())
     return True
+
+  def copy_board(self):
+    """Deep copy of the board."""
+    return copy.deepcopy(self._board)
 
   def get_board(self):
     """Getter for the board."""

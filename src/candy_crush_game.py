@@ -23,6 +23,7 @@ def main():
   HUMAN_Y = 30
   COMPUTER_X = 500
   COMPUTER_Y = 30
+  PAUSE = 1000
   def is_from_human(x, y):
     return x < COMPUTER_X
   def human_screen_to_indices(x, y):
@@ -51,6 +52,7 @@ def main():
           pygame.draw.circle(screen, pygame.color.Color(utils.COLORS[color]), indices_to_screen(row, col, from_human), H_CELLSIZE, 0)
           # TODO(bowendeng): Enables other types of candies.
   previous_row, previous_col = -1, -1
+  draw_histories = True
   while True:
     if pygame.event.get(pygame.QUIT):
       break
@@ -63,14 +65,31 @@ def main():
           if abs(previous_row - row) + abs(previous_col - col) == 1:
             print('Swapping (%d, %d) and (%d, %d)' % (row, col, previous_row, previous_col))
             human_board.swap((row, col), (previous_row, previous_col))
+            # TODO(bowendeng): Implements a basic computer algorithm.
+            computer_board.swap((row, col), (previous_row, previous_col))
+            draw_histories = True
             previous_row, previous_col = -1, -1
           else:
             previous_row, previous_col = row, col
     screen.fill(pygame.color.Color('white'))
-    # Draw the board.
-    draw_board(screen, human_board.get_board(), from_human=True)
-    draw_board(screen, computer_board.get_board(), from_human=False)
-    pygame.display.flip()
+    # Draw the histories.
+    human_histories = human_board.get_histories()
+    computer_histories = computer_board.get_histories()
+    if draw_histories:
+      time_to_start_draw_histories = pygame.time.get_ticks()
+      time_to_stop_draw_histories = time_to_start_draw_histories + PAUSE * max(len(human_histories), len(computer_histories))
+      draw_histories = False
+    if pygame.time.get_ticks() < time_to_stop_draw_histories:
+      idx = (pygame.time.get_ticks() - time_to_start_draw_histories) // PAUSE
+      print(idx)
+      draw_board(screen, human_histories[idx] if idx < len(human_histories) else human_board.get_board(), from_human=True)
+      draw_board(screen, computer_histories[idx] if idx < len(computer_histories) else computer_board.get_board(), from_human=False)
+      pygame.display.flip()
+    else:
+      # Draw the board.
+      draw_board(screen, human_board.get_board(), from_human=True)
+      draw_board(screen, computer_board.get_board(), from_human=False)
+      pygame.display.flip()
     clock.tick(60)
 
 
