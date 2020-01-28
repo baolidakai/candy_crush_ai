@@ -50,12 +50,12 @@ def main():
           if board[i][row][col]:
             color = i
             break
+        special = ''
+        for i in range(len(utils.COLORS), len(utils.COLUMNS)):
+          if board[i][row][col]:
+            special = utils.COLUMNS[i]
+            break
         if color != -1:
-          special = ''
-          for i in range(len(utils.COLORS), len(utils.COLUMNS)):
-            if board[i][row][col]:
-              special = utils.COLUMNS[i]
-              break
           pygame_color = pygame.color.Color(utils.COLORS[color])
           if special == '':
             pygame.draw.circle(screen, pygame_color, coords, H_CELLSIZE, 0)
@@ -65,11 +65,13 @@ def main():
             pygame.draw.ellipse(screen, pygame_color, [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE // 2, H_CELLSIZE * 2, H_CELLSIZE], 0)
           else:
             pygame.draw.rect(screen, pygame_color, [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE, H_CELLSIZE, H_CELLSIZE], 0)
-        else:
+        elif special == 'color_bomb':
           pygame.draw.arc(screen, (0, 0, 0), [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE, H_CELLSIZE * 2, H_CELLSIZE * 2], 0, math.pi / 2, 2)
           pygame.draw.arc(screen, (0, 255, 0), [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE, H_CELLSIZE * 2, H_CELLSIZE * 2], math.pi / 2, math.pi, 2)
           pygame.draw.arc(screen, (0, 0, 255), [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE, H_CELLSIZE * 2, H_CELLSIZE * 2], math.pi, 3 * math.pi / 2, 2)
           pygame.draw.arc(screen, (255, 0, 0), [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE, H_CELLSIZE * 2, H_CELLSIZE * 2], 3 * math.pi / 2, 2 * math.pi, 2)
+        else:
+          print('Empty cell at %d, %d' % (row, col))
   previous_row, previous_col = -1, -1
   draw_histories = True
   while True:

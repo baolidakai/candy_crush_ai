@@ -27,6 +27,8 @@ class CandyCrushBoard(object):
     # The candies that are automatically eliminated
     # by screen flush are counted.
     self._reward = 0
+    # Number of swaps so far.
+    self._swaps = 0
     # The board, represented as a three-dimensional matrix.
     self._board = [[[0 for _ in range(self._N)] for _ in range(self._N)] for _ in range(len(utils.COLUMNS))]
     # Historical board states.
@@ -64,13 +66,12 @@ class CandyCrushBoard(object):
         return color
     return -1
 
-  def flush_once(self):
-    """Flushes once, only eliminates current matches and do no more moves. Returns false if no flush is done."""
+  def get_block(self):
+    """Gets the consecutive block to eliminate, or returns []."""
     # Checks for consecutive blocks of identical color.
     # Either three colors are identical in a row, or in a column.
     seed_row = -1
     seed_col = -1
-    seed_color = -1
     found = False
     for row in range(self._N):
       if found:
@@ -78,7 +79,6 @@ class CandyCrushBoard(object):
       for col in range(self._N - 2):
         if self.get_color(row, col) == self.get_color(row, col + 1) == self.get_color(row, col + 2):
           seed_row, seed_col = row, col
-          seed_color = self.get_color(row, col)
           found = True
           break
     for col in range(self._N):
@@ -87,16 +87,16 @@ class CandyCrushBoard(object):
       for row in range(self._N - 2):
         if self.get_color(row, col) == self.get_color(row + 1, col) == self.get_color(row + 2, col):
           seed_row, seed_col = row, col
-          seed_color = self.get_color(row, col)
           found = True
           break
-    if seed_row == -1:
-      return False
+    if not found:
+      return []
     # Finds the block.
     block = [(seed_row, seed_col)]
     visited = set(block)
     frontier = collections.deque()
     frontier.append((seed_row, seed_col))
+    seed_color = self.get_color(seed_row, seed_col)
     while frontier:
       curr_row, curr_col = frontier.popleft()
       for drow, dcol in utils.DIRS:
@@ -109,21 +109,35 @@ class CandyCrushBoard(object):
             continue
           frontier.append(neighbor)
           block.append(neighbor)
+    return block
+
+  def flush_once(self):
+    """Flushes once, only eliminates current matches and do no more moves. Returns false if no flush is done."""
+    block = self.get_block()
+    if not block:
+      return False
     # Eliminates the block.
     block.sort()
+    intermediate_board = self.copy_board()
     for row, col in block:
-      for r in range(row, 0, -1):
-        for channel in range(len(utils.COLUMNS)):
-          self._board[channel][r][col] = self._board[channel][r - 1][col]
-      new_color = self._config[self._ptrs[col]][col]
-      self.advance_ptr(col)
       for channel in range(len(utils.COLUMNS)):
-        self._board[channel][0][col] = 0
-      self._board[new_color][0][col] = 1
-    # TODO(bowendeng): Implements correctly.
-    self._reward += len(block)
+        intermediate_board[channel][row][col] = 0
+      self.eliminate_cell(row, col)
+    self._histories.append(intermediate_board)
     self._histories.append(self.copy_board())
     return True
+
+  def eliminate_cell(self, row, col):
+    print('Eliminating %d, %d' % (row, col))
+    for r in range(row, 0, -1):
+      for channel in range(len(utils.COLUMNS)):
+        self._board[channel][r][col] = self._board[channel][r - 1][col]
+    new_color = self._config[self._ptrs[col]][col]
+    self.advance_ptr(col)
+    for channel in range(len(utils.COLUMNS)):
+      self._board[channel][0][col] = 0
+    self._board[new_color][0][col] = 1
+    self._reward += 1
 
   def copy_board(self):
     """Deep copy of the board."""
@@ -139,10 +153,19 @@ class CandyCrushBoard(object):
 
   def swap(self, cell1, cell2):
     """Swaps cell1 and cell2."""
+    self._swaps += 1
     r1, c1 = cell1
     r2, c2 = cell2
     for channel in range(len(utils.COLUMNS)):
       self._board[channel][r1][c1], self._board[channel][r2][c2] = self._board[channel][r2][c2], self._board[channel][r1][c1]
-    # TODO(bowendeng): Implements checking on whether this is useful.
+    block = self.get_block()
+    if not block:
+      # If no valid block, revert this change.
+      for channel in range(len(utils.COLUMNS)):
+        self._board[channel][r1][c1], self._board[channel][r2][c2] = self._board[channel][r2][c2], self._board[channel][r1][c1]
     self.flush()
+
+  def num_swaps(self):
+    """Getter for number of swaps."""
+    return self._swaps
 
