@@ -151,21 +151,38 @@ class CandyCrushBoard(object):
     """Getter for the recent histories."""
     return self._histories
 
+  def swap_helper(self, r1, c1, r2, c2):
+    for channel in range(len(utils.COLUMNS)):
+      self._board[channel][r1][c1], self._board[channel][r2][c2] = self._board[channel][r2][c2], self._board[channel][r1][c1]
+
   def swap(self, cell1, cell2):
     """Swaps cell1 and cell2."""
     self._swaps += 1
     r1, c1 = cell1
     r2, c2 = cell2
-    for channel in range(len(utils.COLUMNS)):
-      self._board[channel][r1][c1], self._board[channel][r2][c2] = self._board[channel][r2][c2], self._board[channel][r1][c1]
+    self.swap_helper(r1, c1, r2, c2)
     block = self.get_block()
     if not block:
       # If no valid block, revert this change.
-      for channel in range(len(utils.COLUMNS)):
-        self._board[channel][r1][c1], self._board[channel][r2][c2] = self._board[channel][r2][c2], self._board[channel][r1][c1]
+      self.swap_helper(r1, c1, r2, c2)
     self.flush()
+
+  def is_feasible_swap(self, cell1, cell2):
+    """Checks whether a swap is feasible."""
+    r1, c1 = cell1
+    r2, c2 = cell2
+    self.swap_helper(r1, c1, r2, c2)
+    block = self.get_block()
+    self.swap_helper(r1, c1, r2, c2)
+    return len(block) > 0
 
   def num_swaps(self):
     """Getter for number of swaps."""
     return self._swaps
 
+  def get_size(self):
+    return self._N
+
+  def get_score(self):
+    """Getter for the reward."""
+    return self._reward

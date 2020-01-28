@@ -13,6 +13,8 @@ def main():
   human_board = candy_crush_board.CandyCrushBoard(config_file=config_file)
   # Gets computer board.
   computer_board = candy_crush_board.CandyCrushBoard(config_file=config_file)
+  SIZE = human_board.get_size()
+  assert computer_board.get_size() == SIZE
   # Renders the two boards.
   pygame.init()
   screen = pygame.display.set_mode((1000, 1000))
@@ -100,6 +102,19 @@ def main():
       time_to_start_draw_histories = pygame.time.get_ticks()
       time_to_stop_draw_histories = time_to_start_draw_histories + PAUSE * max(len(human_histories), len(computer_histories))
       draw_histories = False
+    font = pygame.font.Font('freesansbold.ttf', CELLSIZE)
+    human_text = font.render('Human score: %d' % (human_board.get_score(),), True, (0, 0, 0))
+    human_text_rect = human_text.get_rect()
+    human_text_rect.center = ((HUMAN_X + CELLSIZE * (SIZE // 2)), (HUMAN_Y + CELLSIZE * (SIZE + 2)))
+    screen.blit(human_text, human_text_rect)
+    computer_text = font.render('Computer score: %d' % (computer_board.get_score(),), True, (0, 0, 0))
+    computer_text_rect = computer_text.get_rect()
+    computer_text_rect.center = ((COMPUTER_X + CELLSIZE * (SIZE // 2)), (COMPUTER_Y + CELLSIZE * (SIZE + 2)))
+    screen.blit(computer_text, computer_text_rect)
+    move_text = font.render('Number of moves: %d' % (human_board.num_swaps(),), True, (0, 0, 0))
+    move_text_rect = move_text.get_rect()
+    move_text_rect.center = (COMPUTER_X, H_CELLSIZE)
+    screen.blit(move_text, move_text_rect)
     if pygame.time.get_ticks() < time_to_stop_draw_histories:
       idx = (pygame.time.get_ticks() - time_to_start_draw_histories) // PAUSE
       draw_board(screen, human_histories[idx] if idx < len(human_histories) else human_board.get_board(), from_human=True)
