@@ -4,7 +4,10 @@ MAX_COLOR = 7
 # Columns of the board.
 # 7 colors + is vertical strip bomb + is horizontal
 # strip bomb + is color bomb + is candy bomb.
-COLUMNS = ['blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black', 'v_strip', 'h_strip', 'color_bomb', 'candy']
+COLORS = ['blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black']
+COLUMNS = COLORS + ['v_strip', 'h_strip', 'color_bomb', 'candy']
+# Directions of neighbors.
+DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
 def load_config_from_file(config_file):
   """Loads the config file into a binary matrix of M x N. Returns None on error."""
