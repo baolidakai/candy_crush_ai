@@ -11,5 +11,5 @@ python config_generator.py 200 10 5 config1.txt
 
 TODOs:
 * other candy types
-* reinforcement learning part
+* implements dqn agent using policy\_net
 

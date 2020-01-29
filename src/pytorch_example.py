@@ -204,4 +204,12 @@ for i_episode in range(num_episodes):
 print('Complete')
 plt.show()
 
+torch.save(target_net.state_dict(), 'target_net')
+torch.save(policy_net.state_dict(), 'policy_net')
+
+# To load
+# model = TheModelClass(*args, **kwargs)
+# model.load_state_dict(torch.load('target_net'))
+# model.eval()
+
 
