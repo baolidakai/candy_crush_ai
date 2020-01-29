@@ -26,7 +26,7 @@ def main():
   HUMAN_Y = 30
   COMPUTER_X = 500
   COMPUTER_Y = 30
-  PAUSE = 1000
+  PAUSE = 500
   def is_from_human(x, y):
     return x < COMPUTER_X
   def human_screen_to_indices(x, y):

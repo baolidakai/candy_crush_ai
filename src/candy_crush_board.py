@@ -71,7 +71,8 @@ class CandyCrushBoard(object):
     return -1
 
   def get_block(self):
-    """Gets the consecutive block to eliminate, or returns []."""
+    """Gets the block to eliminate, or returns []."""
+    # TODO(bowendeng): Adds other candies.
     # Checks for consecutive blocks of identical color.
     # Either three colors are identical in a row, or in a column.
     seed_row = -1
@@ -96,8 +97,7 @@ class CandyCrushBoard(object):
     if not found:
       return []
     # Finds the block.
-    block = [(seed_row, seed_col)]
-    visited = set(block)
+    visited = set([(seed_row, seed_col)])
     frontier = collections.deque()
     frontier.append((seed_row, seed_col))
     seed_color = self.get_color(seed_row, seed_col)
@@ -108,11 +108,33 @@ class CandyCrushBoard(object):
         if 0 <= neighbor[0] < self._N and 0 <= neighbor[1] < self._N:
           if neighbor in visited:
             continue
-          visited.add(neighbor)
           if self.get_color(neighbor[0], neighbor[1]) != seed_color:
             continue
+          visited.add(neighbor)
           frontier.append(neighbor)
-          block.append(neighbor)
+    # Only keeps the cells who is in a row of at least 3.
+    block = []
+    for row, col in visited:
+      num_h = 1
+      num_v = 1
+      for c in range(col + 1, self._N):
+        if (row, c) not in visited:
+          break
+        num_h += 1
+      for c in range(col - 1, -1, -1):
+        if (row, c) not in visited:
+          break
+        num_h += 1
+      for r in range(row + 1, self._N):
+        if (r, col) not in visited:
+          break
+        num_v += 1
+      for r in range(row - 1, -1, -1):
+        if (r, col) not in visited:
+          break
+        num_v += 1
+      if num_h > 2 or num_v > 2:
+        block.append((row, col))
     return block
 
   def flush_once(self):
