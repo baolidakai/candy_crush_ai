@@ -10,8 +10,6 @@ python config_generator.py 200 10 5 config1.txt
 ```
 
 TODOs:
-* show the legend
-* show the rewards
 * a naive AI baseline
 * reinforcement learning part
 

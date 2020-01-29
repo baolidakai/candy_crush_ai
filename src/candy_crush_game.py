@@ -72,8 +72,6 @@ def main():
           pygame.draw.arc(screen, (0, 255, 0), [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE, H_CELLSIZE * 2, H_CELLSIZE * 2], math.pi / 2, math.pi, 2)
           pygame.draw.arc(screen, (0, 0, 255), [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE, H_CELLSIZE * 2, H_CELLSIZE * 2], math.pi, 3 * math.pi / 2, 2)
           pygame.draw.arc(screen, (255, 0, 0), [coords[0] - H_CELLSIZE, coords[1] - H_CELLSIZE, H_CELLSIZE * 2, H_CELLSIZE * 2], 3 * math.pi / 2, 2 * math.pi, 2)
-        else:
-          print('Empty cell at %d, %d' % (row, col))
   previous_row, previous_col = -1, -1
   draw_histories = True
   while True:
@@ -88,8 +86,8 @@ def main():
           if abs(previous_row - row) + abs(previous_col - col) == 1:
             print('Swapping (%d, %d) and (%d, %d)' % (row, col, previous_row, previous_col))
             human_board.swap((row, col), (previous_row, previous_col))
-            # TODO(bowendeng): Implements a basic computer algorithm.
-            computer_board.swap((row, col), (previous_row, previous_col))
+            new_reward = computer_board.ai_swap(method='brute force')
+            print('New reward %d' % (new_reward,))
             draw_histories = True
             previous_row, previous_col = -1, -1
           else:

@@ -37,6 +37,10 @@ class CandyCrushBoard(object):
     self.fill_board()
     # Flush the screen.
     self.flush()
+    # Clears the reward.
+    self._reward = 0
+    # Clears the history.
+    self._histories.clear()
 
   def advance_ptr(self, col):
     """Advances ptrs for col."""
@@ -128,7 +132,6 @@ class CandyCrushBoard(object):
     return True
 
   def eliminate_cell(self, row, col):
-    print('Eliminating %d, %d' % (row, col))
     for r in range(row, 0, -1):
       for channel in range(len(utils.COLUMNS)):
         self._board[channel][r][col] = self._board[channel][r - 1][col]
@@ -186,3 +189,34 @@ class CandyCrushBoard(object):
   def get_score(self):
     """Getter for the reward."""
     return self._reward
+
+  def ai_swap(self, method):
+    """Use method to swap once, returns the reward."""
+    if method in 'brute force':
+      r1, c1, r2, c2 = self.brute_force_baseline()
+      if r1 == -1:
+        self.flush()
+        self._swaps += 1
+        return 0
+      old_reward = self._reward
+      self.swap((r1, c1), (r2, c2))
+      return self._reward - old_reward
+    else:
+      raise Exception('Invalid method')
+
+
+  def brute_force_baseline(self):
+    """Returns a brute force action (r1, c1, r2, c2)."""
+    # For each cell, search for right or bottom neighbor.
+    for row in range(self._N):
+      for col in range(self._N):
+        if row < self._N - 1:
+          # Check bottom.
+          if self.is_feasible_swap((row, col), (row + 1, col)):
+            return row, col, row + 1, col
+        if col < self._N - 1:
+          # Check right.
+          if self.is_feasible_swap((row, col), (row, col + 1)):
+            return row, col, row, col + 1
+    return -1, -1, -1, -1
+
