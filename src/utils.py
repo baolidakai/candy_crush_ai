@@ -1,6 +1,8 @@
 """Utility functions and constants."""
 # Maximum number of colors allowed.
 MAX_COLOR = 7
+# Maximum number of swaps allowed.
+MAX_SWAPS = 40
 # Columns of the board.
 # 7 colors + is vertical strip bomb + is horizontal
 # strip bomb + is color bomb + is candy bomb.

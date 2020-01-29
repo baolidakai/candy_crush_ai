@@ -14,6 +14,7 @@ class CandyCrushBoard(object):
     """
     # _config contains a M x N matrix representing the
     # colors to drop.
+    self._config_file = config_file
     self._config = utils.load_config_from_file(config_file)
     assert self._config is not None
     self._M = len(self._config)
@@ -170,7 +171,11 @@ class CandyCrushBoard(object):
 
   def get_board(self):
     """Getter for the board."""
-    return self._board
+    return copy.deepcopy(self._board)
+
+  def get_numpy_board(self):
+    """Getter for the board."""
+    return np.array(self.get_board())
 
   def get_histories(self):
     """Getter for the recent histories."""
@@ -230,15 +235,34 @@ class CandyCrushBoard(object):
   def brute_force_baseline(self):
     """Returns a brute force action (r1, c1, r2, c2)."""
     # For each cell, search for right or bottom neighbor.
+    for r1, c1, r2, c2 in self.get_actions():
+      if self.is_feasible_swap((r1, c1), (r2, c2)):
+          return r1, c1, r2, c2
+    return -1, -1, -1, -1
+
+  def get_actions(self):
+    """Returns all possible (r1, c1, r2, c2)."""
+    # For each cell, search for right or bottom neighbor.
+    actions = []
     for row in range(self._N):
       for col in range(self._N):
         if row < self._N - 1:
-          # Check bottom.
-          if self.is_feasible_swap((row, col), (row + 1, col)):
-            return row, col, row + 1, col
+          actions.append((row, col, row + 1, col))
         if col < self._N - 1:
-          # Check right.
-          if self.is_feasible_swap((row, col), (row, col + 1)):
-            return row, col, row, col + 1
-    return -1, -1, -1, -1
+          actions.append((row, col, row, col + 1))
+    return actions
+
+  def step(self, action_index):
+    """Takes action_index-th action and returns the reward."""
+    old_reward = self._reward
+    r1, c1, r2, c2 = self.get_actions()[action_index]
+    self.swap((r1, c1), (r2, c2))
+    return self._reward - old_reward
+
+  def reset(self):
+    self.__init__(self._config_file)
+
+  def is_done(self):
+    """Returns whether the game is done."""
+    return self._swaps >= utils.MAX_SWAPS
 
