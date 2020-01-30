@@ -3,6 +3,44 @@ import collections
 import copy
 import utils
 import numpy as np
+import pdb
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+import torchvision.transforms as T
+from PIL import Image
+
+resize = T.Compose([T.ToPILImage(),
+  T.Resize(40, interpolation=Image.CUBIC),
+  T.ToTensor()])
+
+class DQN(nn.Module):
+  def __init__(self, h, w, outputs):
+    super(DQN, self).__init__()
+    self.conv1 = nn.Conv2d(3, 16, kernel_size=5, stride=2)
+    self.bn1 = nn.BatchNorm2d(16)
+    self.conv2 = nn.Conv2d(16, 32, kernel_size=5, stride=2)
+    self.bn2 = nn.BatchNorm2d(32)
+    self.conv3 = nn.Conv2d(32, 32, kernel_size=5, stride=2)
+    self.bn3 = nn.BatchNorm2d(32)
+
+    def conv2d_size_out(size, kernel_size=5, stride=2):
+      return (size - (kernel_size - 1) - 1) // stride + 1
+    
+    convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
+    convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
+    linear_input_size = convw * convh * 32
+    self.head = nn.Linear(linear_input_size, outputs)
+
+  # Called with either one element to determine next action, or a batch during optimization.
+  # Returns tensor([[left0exp, right0exp]...]).
+  def forward(self, x):
+    x = F.relu(self.bn1(self.conv1(x)))
+    x = F.relu(self.bn2(self.conv2(x)))
+    x = F.relu(self.bn3(self.conv3(x)))
+    return self.head(x.view(x.size(0), -1))
+
 
 class CandyCrushBoard(object):
   def __init__(self, config_file='../config/config1.txt'):
@@ -42,6 +80,9 @@ class CandyCrushBoard(object):
     self._reward = 0
     # Clears the history.
     self._histories.clear()
+    # Initializes DQN.
+    self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    self._dqn = None
 
   def advance_ptr(self, col):
     """Advances ptrs for col."""
@@ -205,6 +246,11 @@ class CandyCrushBoard(object):
     block = self.get_block()
     self.swap_helper(r1, c1, r2, c2)
     return len(block) > 0
+  
+  def is_feasible_action(self, action_index):
+   """Checks whether action_index-th action is feasible swap."""
+   r1, c1, r2, c2 = self.get_actions()[action_index]
+   return self.is_feasible_swap((r1, c1), (r2, c2))
 
   def num_swaps(self):
     """Getter for number of swaps."""
@@ -219,17 +265,21 @@ class CandyCrushBoard(object):
 
   def ai_swap(self, method):
     """Use method to swap once, returns the reward."""
-    if method in 'brute force':
+    r1, c1, r2, c2 = -1, -1, -1, -1
+    if method == 'brute force':
       r1, c1, r2, c2 = self.brute_force_baseline()
-      if r1 == -1:
-        self.flush()
-        self._swaps += 1
-        return 0
-      old_reward = self._reward
-      self.swap((r1, c1), (r2, c2))
-      return self._reward - old_reward
+    elif method == 'dqn':
+      r1, c1, r2, c2 = self.predict_dqn()
     else:
       raise Exception('Invalid method')
+    print('Swapping %d, %d and %d, %d' % (r1, c1, r2, c2))
+    if r1 == -1:
+      self.flush()
+      self._swaps += 1
+      return 0
+    old_reward = self._reward
+    self.swap((r1, c1), (r2, c2))
+    return self._reward - old_reward
 
 
   def brute_force_baseline(self):
@@ -239,6 +289,9 @@ class CandyCrushBoard(object):
       if self.is_feasible_swap((r1, c1), (r2, c2)):
           return r1, c1, r2, c2
     return -1, -1, -1, -1
+
+  def get_action(self, action_index):
+    return self.get_actions()[action_index]
 
   def get_actions(self):
     """Returns all possible (r1, c1, r2, c2)."""
@@ -255,7 +308,7 @@ class CandyCrushBoard(object):
   def step(self, action_index):
     """Takes action_index-th action and returns the reward."""
     old_reward = self._reward
-    r1, c1, r2, c2 = self.get_actions()[action_index]
+    r1, c1, r2, c2 = self.get_action(action_index)
     self.swap((r1, c1), (r2, c2))
     return self._reward - old_reward
 
@@ -265,4 +318,38 @@ class CandyCrushBoard(object):
   def is_done(self):
     """Returns whether the game is done."""
     return self._swaps >= utils.MAX_SWAPS
+
+  def get_dqn_state(self):
+    raw_state = self.get_numpy_board()
+    raw_state = np.ascontiguousarray(raw_state, dtype=np.float32)
+    raw_state = torch.from_numpy(raw_state)
+    return resize(raw_state).unsqueeze(0).to(self._device)
+
+  def init_dqn(self):
+    """Initializes DQN."""
+    print('Initializing DQN')
+    self.get_dqn_state()
+    init_screen = self.get_dqn_state()
+    _, _, screen_height, screen_width = init_screen.shape
+    actions = self.get_actions()
+    n_actions = len(actions)
+    target_net = DQN(screen_height, screen_width, n_actions).to(self._device)
+    target_net.load_state_dict(torch.load('target_net'))
+    target_net.eval()
+    self._dqn = target_net
+    print('Done')
+
+  def predict_dqn(self):
+    """Returns r1, c1, r2, c2 of the DQN."""
+    action_scores = self._dqn(self.get_dqn_state())[0].detach().numpy()
+    # Gets the best feasible score.
+    best_action_index = 0
+    max_score = float('-inf')
+    for action_index in range(len(self.get_actions())):
+      if not self.is_feasible_action(action_index):
+        continue
+      curr_score = action_scores[action_index]
+      if curr_score > max_score:
+        best_action_index, max_score = action_index, curr_score
+    return self.get_action(best_action_index)
 

@@ -15,6 +15,7 @@ def main():
   computer_board = candy_crush_board.CandyCrushBoard(config_file=config_file)
   SIZE = human_board.get_size()
   assert computer_board.get_size() == SIZE
+  computer_board.init_dqn()
   # Renders the two boards.
   pygame.init()
   screen = pygame.display.set_mode((1000, 1000))
@@ -86,7 +87,7 @@ def main():
           if abs(previous_row - row) + abs(previous_col - col) == 1:
             print('Swapping (%d, %d) and (%d, %d)' % (row, col, previous_row, previous_col))
             human_board.swap((row, col), (previous_row, previous_col))
-            new_reward = computer_board.ai_swap(method='brute force')
+            new_reward = computer_board.ai_swap(method='dqn')
             print('New reward %d' % (new_reward,))
             draw_histories = True
             previous_row, previous_col = -1, -1

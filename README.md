@@ -13,3 +13,15 @@ TODOs:
 * other candy types
 * implements dqn agent using policy\_net
 
+How to featurize: raw pixel vs my own representation
+Which model use
+
+consider good randomization
+
+Some other models:
+policy gradients (DDPG)
+
+Either try different architectures and do one experiment
+Or try existing architectures and more analysis
+
+
