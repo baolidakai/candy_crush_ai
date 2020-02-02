@@ -12,13 +12,10 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 from PIL import Image
+from dqn_base import resize, DQN
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-resize = T.Compose([T.ToPILImage(),
-  T.Resize(40, interpolation=Image.CUBIC),
-  T.ToTensor()])
 
 
 # https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
@@ -46,33 +43,6 @@ class ReplayMemory(object):
     return len(self._memory)
 
 
-class DQN(nn.Module):
-  def __init__(self, h, w, outputs):
-    super(DQN, self).__init__()
-    self.conv1 = nn.Conv2d(3, 16, kernel_size=5, stride=2)
-    self.bn1 = nn.BatchNorm2d(16)
-    self.conv2 = nn.Conv2d(16, 32, kernel_size=5, stride=2)
-    self.bn2 = nn.BatchNorm2d(32)
-    self.conv3 = nn.Conv2d(32, 32, kernel_size=5, stride=2)
-    self.bn3 = nn.BatchNorm2d(32)
-
-    def conv2d_size_out(size, kernel_size=5, stride=2):
-      return (size - (kernel_size - 1) - 1) // stride + 1
-    
-    convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
-    convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
-    linear_input_size = convw * convh * 32
-    self.head = nn.Linear(linear_input_size, outputs)
-
-  # Called with either one element to determine next action, or a batch during optimization.
-  # Returns tensor([[left0exp, right0exp]...]).
-  def forward(self, x):
-    x = F.relu(self.bn1(self.conv1(x)))
-    x = F.relu(self.bn2(self.conv2(x)))
-    x = F.relu(self.bn3(self.conv3(x)))
-    return self.head(x.view(x.size(0), -1))
-
-
 BATCH_SIZE = 128
 GAMMA = 0.999
 EPS_START = 0.9
@@ -80,7 +50,7 @@ EPS_END = 0.05
 EPS_DECAY = 200
 TARGET_UPDATE = 10
 
-board = candy_crush_board.CandyCrushBoard()
+board = candy_crush_board.CandyCrushBoard(config_file='../config/train/config1.txt')
 
 def get_state(board):
   raw_state = board.get_numpy_board()
@@ -168,7 +138,7 @@ def optimize_model():
   optimizer.step()
 
 
-num_episodes = 300
+num_episodes = 3000
 for i_episode in range(num_episodes):
   board.reset()
   state = get_state(board)

@@ -1,5 +1,6 @@
 """Pygame controller for the game."""
 import math
+import os
 import pygame
 import sys
 import utils
@@ -7,7 +8,8 @@ import candy_crush_board
 
 
 def main():
-  config_file = '../config/config1.txt' if len(sys.argv) < 2 else '../config/' + sys.argv[1]
+  demo_base = '../config/demo/'
+  config_file = os.path.join(demo_base, 'config1.txt') if len(sys.argv) < 2 else os.path.join(demo_base, sys.argv[1])
   print('Loading from %s' % (config_file,))
   # Gets human board.
   human_board = candy_crush_board.CandyCrushBoard(config_file=config_file)
@@ -27,7 +29,7 @@ def main():
   HUMAN_Y = 30
   COMPUTER_X = 500
   COMPUTER_Y = 30
-  PAUSE = 500
+  PAUSE = 300
   def is_from_human(x, y):
     return x < COMPUTER_X
   def human_screen_to_indices(x, y):
