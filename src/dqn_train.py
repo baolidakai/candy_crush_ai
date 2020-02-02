@@ -168,7 +168,7 @@ def optimize_model():
   optimizer.step()
 
 
-num_episodes = 50
+num_episodes = 300
 for i_episode in range(num_episodes):
   board.reset()
   state = get_state(board)

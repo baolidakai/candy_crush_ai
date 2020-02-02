@@ -11,12 +11,13 @@ python config_generator.py 200 10 5 config1.txt
 
 TODOs:
 * other candy types
-* implements dqn agent using policy\_net
+* Side by side with brute force
+* Implements Monte Carlo agent
 
 How to featurize: raw pixel vs my own representation
 Which model use
 
-consider good randomization
+consider good randomization technique
 
 Some other models:
 policy gradients (DDPG)
