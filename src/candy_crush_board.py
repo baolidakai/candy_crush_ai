@@ -242,6 +242,8 @@ class CandyCrushBoard(object):
       r1, c1, r2, c2 = self.brute_force_baseline()
     elif method == 'dqn':
       r1, c1, r2, c2 = self.predict_dqn()
+    elif method == 'monte carlo':
+      r1, c1, r2, c2 = self.predict_monte_carlo()
     else:
       raise Exception('Invalid method')
     print('Swapping %d, %d and %d, %d' % (r1, c1, r2, c2))
@@ -312,7 +314,7 @@ class CandyCrushBoard(object):
     print('Done')
 
   def predict_dqn(self):
-    """Returns r1, c1, r2, c2 of the DQN."""
+    """Returns r1, c1, r2, c2 of the DQN agent."""
     action_scores = self._dqn(self.get_dqn_state())[0].detach().numpy()
     # Gets the best feasible score.
     best_action_index = 0
@@ -324,4 +326,20 @@ class CandyCrushBoard(object):
       if curr_score > max_score:
         best_action_index, max_score = action_index, curr_score
     return self.get_action(best_action_index)
+
+  def predict_monte_carlo(self):
+    """Returns r1, c1, r2, c2 of the Monte Carlo agent."""
+    # Gets the best feasible score.
+    best_action_index = 0
+    max_score = float('-inf')
+    for action_index in range(len(self.get_actions())):
+      if not self.is_feasible_action(action_index):
+        continue
+      curr_score = self.get_monte_carlo_score(action_index)
+      if curr_score > max_score:
+        best_action_index, max_score = action_index, curr_score
+    return self.get_action(best_action_index)
+
+  def get_monte_carlo_score(self, action_index):
+    return 0.0
 

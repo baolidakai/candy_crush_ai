@@ -11,7 +11,7 @@ def main():
   demo_base = '../config/demo/'
   config_file = os.path.join(demo_base, 'config1.txt') if len(sys.argv) < 2 else os.path.join(demo_base, sys.argv[1])
   print('Loading from %s' % (config_file,))
-  AGENTS = ['human', 'brute force', 'dqn']
+  AGENTS = ['human', 'brute force', 'dqn', 'monte carlo']
   NUM_BOARDS = len(AGENTS)
   # Gets human board and computer boards.
   boards = [candy_crush_board.CandyCrushBoard(config_file=config_file) for _ in range(NUM_BOARDS)]
