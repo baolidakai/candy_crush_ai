@@ -11,7 +11,8 @@ def main():
   demo_base = '../config/demo/'
   config_file = os.path.join(demo_base, 'config1.txt') if len(sys.argv) < 2 else os.path.join(demo_base, sys.argv[1])
   print('Loading from %s' % (config_file,))
-  AGENTS = ['human', 'brute force', 'dqn', 'monte carlo']
+  AGENTS = ['human', 'naive dqn', 'monte carlo', 'monte carlo dqn', # First row
+            'brute force'] # Second row
   NUM_BOARDS = len(AGENTS)
   # Gets human board and computer boards.
   boards = [candy_crush_board.CandyCrushBoard(config_file=config_file) for _ in range(NUM_BOARDS)]
@@ -19,26 +20,31 @@ def main():
   for board in boards:
     assert board.get_size() == SIZE
   for i in range(NUM_BOARDS):
-    if AGENTS[i] == 'dqn':
-      boards[i].init_dqn()
+    if AGENTS[i] == 'naive dqn':
+      boards[i].init_naive_dqn()
+    if AGENTS[i] == 'monte carlo dqn':
+      boards[i].init_monte_carlo_dqn()
   # Renders the two boards.
   pygame.init()
-  screen = pygame.display.set_mode((1200, 800))
+  screen = pygame.display.set_mode((1500, 1200))
   clock = pygame.time.Clock()
   pygame.time.set_timer(pygame.USEREVENT, 1500)
   CENTER_X = 600
   CELLSIZE = 28
-  BOARD_LEN = 300
+  BOARD_WIDTH = 300
+  BOARD_HEIGHT = 350
+  TOP_MARGIN = 30
+  AGENT_PER_ROW = 4
   H_CELLSIZE = CELLSIZE // 2
   PAUSE = 300
   def get_base_xy(idx):
-    return BOARD_LEN * idx, 30
+    return (idx % AGENT_PER_ROW) * BOARD_WIDTH, TOP_MARGIN + (idx // AGENT_PER_ROW) * BOARD_HEIGHT
   def get_index(x, y):
-    row = 0
-    col = x // BOARD_LEN
-    idx = row * 2 + col
+    row = (y - TOP_MARGIN) // BOARD_HEIGHT
+    col = x // BOARD_WIDTH
+    idx = row * AGENT_PER_ROW + col
     idx = max(idx, 0)
-    idx = min(idx, NUM_BOARDS)
+    idx = min(idx, NUM_BOARDS - 1)
     return idx
   def screen_to_indices(x, y, idx):
     base_x, base_y = get_base_xy(idx)
@@ -113,13 +119,13 @@ def main():
       time_to_stop_draw_histories = time_to_start_draw_histories + PAUSE * max(len(human_histories), max_computer_histories)
       draw_histories = False
     font = pygame.font.Font('freesansbold.ttf', CELLSIZE)
-    human_text = font.render('Human score: %d' % (boards[0].get_score(),), True, (0, 0, 0))
+    human_text = font.render('Human: %d' % (boards[0].get_score(),), True, (0, 0, 0))
     human_text_rect = human_text.get_rect()
     human_x, human_y = get_base_xy(0)
     human_text_rect.center = ((human_x + CELLSIZE * (SIZE // 2)), (human_y + CELLSIZE * (SIZE + 2)))
     screen.blit(human_text, human_text_rect)
     for i in range(1, NUM_BOARDS):
-      computer_text = font.render('%s score: %d' % (AGENTS[i], boards[i].get_score(),), True, (0, 0, 0))
+      computer_text = font.render('%s: %d' % (AGENTS[i], boards[i].get_score(),), True, (0, 0, 0))
       computer_text_rect = computer_text.get_rect()
       computer_x, computer_y = get_base_xy(i)
       computer_text_rect.center = ((computer_x + CELLSIZE * (SIZE // 2)), (computer_y + CELLSIZE * (SIZE + 2)))

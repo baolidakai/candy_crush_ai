@@ -11,7 +11,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 from PIL import Image
-from dqn_base import resize, DQN
+from dqn_base import resize, DQN, DQNPrediction
 import multiprocessing
 from multiprocessing import Queue
 
@@ -53,8 +53,8 @@ class CandyCrushBoard(object):
     # Whether to use random next colors, instead of using the config.
     self._random_colors = False
     # Initializes DQN.
-    self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    self._dqn = None
+    self._naive_dqn = DQNPrediction('naive_target_net.pt')
+    self._monte_carlo_dqn = DQNPrediction('monte_carlo_target_net.pt')
 
     # Fills the board with config.
     self.fill_board()
@@ -64,6 +64,9 @@ class CandyCrushBoard(object):
     self._reward = 0
     # Clears the history.
     self._histories.clear()
+
+  def set_monte_carlo_B(self, monte_carlo_B):
+    self._monte_carlo_B = monte_carlo_B
 
   def advance_ptr(self, col):
     """Advances ptrs for col."""
@@ -256,8 +259,10 @@ class CandyCrushBoard(object):
     r1, c1, r2, c2 = -1, -1, -1, -1
     if method == 'brute force':
       r1, c1, r2, c2 = self.brute_force_baseline()
-    elif method == 'dqn':
-      r1, c1, r2, c2 = self.predict_dqn()
+    elif method == 'naive dqn':
+      r1, c1, r2, c2 = self.predict_dqn(method='naive')
+    elif method == 'monte carlo dqn':
+      r1, c1, r2, c2 = self.predict_dqn(method='monte carlo')
     elif method == 'monte carlo':
       r1, c1, r2, c2 = self.predict_monte_carlo()
     else:
@@ -310,29 +315,20 @@ class CandyCrushBoard(object):
     """Returns whether the game is done."""
     return self._swaps >= utils.MAX_SWAPS
 
-  def get_dqn_state(self):
-    raw_state = self.get_numpy_board()
-    raw_state = np.ascontiguousarray(raw_state, dtype=np.float32)
-    raw_state = torch.from_numpy(raw_state)
-    return resize(raw_state).unsqueeze(0).to(self._device)
-
-  def init_dqn(self):
+  def init_naive_dqn(self):
     """Initializes DQN."""
-    print('Initializing DQN')
-    self.get_dqn_state()
-    init_screen = self.get_dqn_state()
-    _, _, screen_height, screen_width = init_screen.shape
-    actions = self.get_actions()
-    n_actions = len(actions)
-    target_net = DQN(screen_height, screen_width, n_actions).to(self._device)
-    target_net.load_state_dict(torch.load('target_net'))
-    target_net.eval()
-    self._dqn = target_net
-    print('Done')
+    self._naive_dqn.init_dqn(self.get_numpy_board(), len(self.get_actions()))
 
-  def predict_dqn(self):
-    """Returns r1, c1, r2, c2 of the DQN agent."""
-    action_scores = self._dqn(self.get_dqn_state())[0].detach().numpy()
+  def init_monte_carlo_dqn(self):
+    """Initializes DQN."""
+    self._monte_carlo_dqn.init_dqn(self.get_numpy_board(), len(self.get_actions()))
+
+  def predict_dqn(self, method='naive'):
+    """Returns r1, c1, r2, c2 of the DQN agent. Method could be one of 'naive' and 'monte carlo'."""
+    if method == 'naive':
+      action_scores = self._naive_dqn.get_action_scores(self.get_numpy_board())
+    else:
+      action_scores = self._monte_carlo_dqn.get_action_scores(self.get_numpy_board())
     # Gets the best feasible score.
     best_action_index = 0
     max_score = float('-inf')

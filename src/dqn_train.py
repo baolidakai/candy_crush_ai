@@ -139,17 +139,24 @@ def optimize_model():
 
 
 num_episodes = 3000
+monte_carlo_B = 100
+USE_MONTE_CARLO = True
 for i_episode in range(num_episodes):
   board.reset()
+  board.set_monte_carlo_B(monte_carlo_B)
   state = get_state(board)
   for t in itertools.count():
     print('Episode %d' % (i_episode,))
     action = select_action(state)
     action_index = action.item()
     print('Taking action %d' % (action_index,))
-    raw_reward = board.step(action_index)
+    # Simulated reward by Monte Carlo.
+    monte_carlo_reward = board.get_monte_carlo_score(action_index)
+    # Actual reward by taking the action.
+    naive_reward = board.step(action_index)
+    raw_reward = monte_carlo_reward if USE_MONTE_CARLO else float(naive_reward)
     reward = torch.tensor([raw_reward], device=device)
-    print('Getting reward %d' % (raw_reward,))
+    print('Getting reward %f' % (raw_reward,))
     done = board.is_done()
 
     # Observe new state
@@ -174,8 +181,10 @@ for i_episode in range(num_episodes):
 print('Complete')
 plt.show()
 
-torch.save(target_net.state_dict(), 'target_net')
-torch.save(policy_net.state_dict(), 'policy_net')
+target_net_path = 'monte_carlo_target_net.pt' if USE_MONTE_CARLO else 'naive_target_net.pt'
+policy_net_path = 'monte_carlo_policy_net.pt' if USE_MONTE_CARLO else 'naive_policy_net.pt'
+torch.save(target_net.state_dict(), target_net_path)
+torch.save(policy_net.state_dict(), policy_net_path)
 
 # To load
 # model = TheModelClass(*args, **kwargs)
