@@ -10,9 +10,8 @@ python config_generator.py 200 10 5 config1.txt
 ```
 
 TODOs:
-* [P0] Try the newly trained model
-* [P1] Implements Monte Carlo agent baseline
 * [P1] Have an automatic eval pipeline
+* [P1] How to beat or match Monte Carlo
 * [P2] other candy types
 
 How to featurize: raw pixel vs my own representation

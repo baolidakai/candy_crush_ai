@@ -4,6 +4,7 @@ import copy
 import utils
 import numpy as np
 import pdb
+import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -11,6 +12,8 @@ import torch.nn.functional as F
 import torchvision.transforms as T
 from PIL import Image
 from dqn_base import resize, DQN
+import multiprocessing
+from multiprocessing import Queue
 
 
 class CandyCrushBoard(object):
@@ -23,6 +26,7 @@ class CandyCrushBoard(object):
     """
     # _config contains a M x N matrix representing the
     # colors to drop.
+    self._num_colors = 5
     assert config_file is not None
     self._config_file = config_file
     self._config = utils.load_config_from_file(config_file)
@@ -44,6 +48,14 @@ class CandyCrushBoard(object):
     self._board = [[[0 for _ in range(self._N)] for _ in range(self._N)] for _ in range(len(utils.COLUMNS))]
     # Historical board states.
     self._histories = []
+    # Initializes Monte Carlo config.
+    self._monte_carlo_B = 5
+    # Whether to use random next colors, instead of using the config.
+    self._random_colors = False
+    # Initializes DQN.
+    self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    self._dqn = None
+
     # Fills the board with config.
     self.fill_board()
     # Flush the screen.
@@ -52,9 +64,6 @@ class CandyCrushBoard(object):
     self._reward = 0
     # Clears the history.
     self._histories.clear()
-    # Initializes DQN.
-    self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    self._dqn = None
 
   def advance_ptr(self, col):
     """Advances ptrs for col."""
@@ -62,12 +71,20 @@ class CandyCrushBoard(object):
     if self._ptrs[col] == self._M:
       self._ptrs[col] = 0
 
+  def fill_new_color(self, col):
+    """Returns a new color at col."""
+    if self._random_colors:
+      return random.randint(0, self._num_colors - 1)
+    else:
+      color = self._config[self._ptrs[col]][col]
+      self.advance_ptr(col)
+      return color
+
   def fill_board(self):
     """Fills the board with the config."""
     for col in range(self._N):
       for row in range(self._N):
-        color = self._config[self._ptrs[col]][col]
-        self.advance_ptr(col)
+        color = self.fill_new_color(col)
         self._board[color][row][col] = 1
 
   def flush(self):
@@ -171,8 +188,7 @@ class CandyCrushBoard(object):
     for r in range(row, 0, -1):
       for channel in range(len(utils.COLUMNS)):
         self._board[channel][r][col] = self._board[channel][r - 1][col]
-    new_color = self._config[self._ptrs[col]][col]
-    self.advance_ptr(col)
+    new_color = self.fill_new_color(col)
     for channel in range(len(utils.COLUMNS)):
       self._board[channel][0][col] = 0
     self._board[new_color][0][col] = 1
@@ -252,6 +268,7 @@ class CandyCrushBoard(object):
       self._swaps += 1
       return 0
     old_reward = self._reward
+    print('Before swapping reward %d' % (self._reward))
     self.swap((r1, c1), (r2, c2))
     return self._reward - old_reward
 
@@ -332,14 +349,55 @@ class CandyCrushBoard(object):
     # Gets the best feasible score.
     best_action_index = 0
     max_score = float('-inf')
+    feasible_action_indices = []
     for action_index in range(len(self.get_actions())):
       if not self.is_feasible_action(action_index):
         continue
-      curr_score = self.get_monte_carlo_score(action_index)
+      feasible_action_indices.append(action_index)
+    scores_queue = Queue()
+    def get_monte_carlo_score_fun(action_index):
+      scores_queue.put((self.get_monte_carlo_score(action_index), action_index))
+    processes = []
+    for action_index in feasible_action_indices:
+      t = multiprocessing.Process(target=get_monte_carlo_score_fun, args=(action_index,))
+      processes.append(t)
+      t.start()
+    for p in processes:
+      p.join()
+    while not scores_queue.empty():
+      curr_score, action_index = scores_queue.get()
       if curr_score > max_score:
         best_action_index, max_score = action_index, curr_score
     return self.get_action(best_action_index)
 
   def get_monte_carlo_score(self, action_index):
-    return 0.0
+    total_scores = 0
+    for b in range(self._monte_carlo_B):
+      print('Getting Monte Carlo score for %d' % (action_index,))
+      total_scores += self.get_simulation_score(action_index)
+    return float(total_scores) / float(self._monte_carlo_B)
+
+  def get_simulation_score(self, action_index):
+    # Backs up current state.
+    backup_ptrs = self._ptrs[:]
+    backup_reward = self._reward
+    backup_swaps = self._swaps
+    backup_board = copy.deepcopy(self._board)
+    backup_histories = copy.deepcopy(self._histories)
+    # Computes the simulation score.
+    original_reward = self._reward
+    r1, c1, r2, c2 = self.get_action(action_index)
+    self._random_colors = True
+    self.swap((r1, c1), (r2, c2))
+    new_reward = self._reward
+    score = new_reward - original_reward
+    # Reverts original state.
+    self._ptrs = backup_ptrs[:]
+    self._reward = backup_reward
+    self._swaps = backup_swaps
+    self._board = copy.deepcopy(backup_board)
+    self._histories = copy.deepcopy(backup_histories)
+    self._random_colors = False
+    print('Monte Carlo score is %d' % (score,))
+    return score
 
