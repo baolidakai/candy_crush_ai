@@ -11,45 +11,50 @@ def main():
   demo_base = '../config/demo/'
   config_file = os.path.join(demo_base, 'config1.txt') if len(sys.argv) < 2 else os.path.join(demo_base, sys.argv[1])
   print('Loading from %s' % (config_file,))
-  # Gets human board.
-  human_board = candy_crush_board.CandyCrushBoard(config_file=config_file)
-  # Gets computer board.
-  computer_board = candy_crush_board.CandyCrushBoard(config_file=config_file)
-  SIZE = human_board.get_size()
-  assert computer_board.get_size() == SIZE
-  computer_board.init_dqn()
+  AGENTS = ['human', 'brute force', 'dqn']
+  NUM_BOARDS = len(AGENTS)
+  # Gets human board and computer boards.
+  boards = [candy_crush_board.CandyCrushBoard(config_file=config_file) for _ in range(NUM_BOARDS)]
+  SIZE = boards[0].get_size()
+  for board in boards:
+    assert board.get_size() == SIZE
+  for i in range(NUM_BOARDS):
+    if AGENTS[i] == 'dqn':
+      boards[i].init_dqn()
   # Renders the two boards.
   pygame.init()
-  screen = pygame.display.set_mode((1000, 1000))
+  screen = pygame.display.set_mode((1200, 800))
   clock = pygame.time.Clock()
   pygame.time.set_timer(pygame.USEREVENT, 1500)
-  CELLSIZE = 32
+  CENTER_X = 600
+  CELLSIZE = 28
+  BOARD_LEN = 300
   H_CELLSIZE = CELLSIZE // 2
-  HUMAN_X = 0
-  HUMAN_Y = 30
-  COMPUTER_X = 500
-  COMPUTER_Y = 30
   PAUSE = 300
-  def is_from_human(x, y):
-    return x < COMPUTER_X
+  def get_base_xy(idx):
+    return BOARD_LEN * idx, 30
+  def get_index(x, y):
+    row = 0
+    col = x // BOARD_LEN
+    idx = row * 2 + col
+    idx = max(idx, 0)
+    idx = min(idx, NUM_BOARDS)
+    return idx
+  def screen_to_indices(x, y, idx):
+    base_x, base_y = get_base_xy(idx)
+    return ((y - base_y) // CELLSIZE, (x - base_x) // CELLSIZE)
   def human_screen_to_indices(x, y):
-    return ((y - HUMAN_Y) // CELLSIZE, (x - HUMAN_X) // CELLSIZE)
-  def human_indices_to_screen(row, col):
-    return (HUMAN_X + col * CELLSIZE + H_CELLSIZE, HUMAN_Y + row * CELLSIZE + H_CELLSIZE)
-  def computer_screen_to_indices(x, y):
-    return ((y - COMPUTER_Y) // CELLSIZE, (x - COMPUTER_X) // CELLSIZE)
-  def computer_indices_to_screen(row, col):
-    return (COMPUTER_X + col * CELLSIZE + H_CELLSIZE, COMPUTER_Y + row * CELLSIZE + H_CELLSIZE)
-  def indices_to_screen(row, col, from_human):
-    if from_human:
-      return human_indices_to_screen(row, col)
-    else:
-      return computer_indices_to_screen(row, col)
-  def draw_board(screen, board, from_human):
+    return screen_to_indices(x, y, 0)
+  def indices_to_screen(row, col, idx):
+    base_x, base_y = get_base_xy(idx)
+    return (base_x + col * CELLSIZE + H_CELLSIZE, base_y + row * CELLSIZE + H_CELLSIZE)
+  def is_from_human(x, y):
+    return get_index(x, y) == 0
+  def draw_board(screen, board, idx):
     n = len(board[0])
     for row in range(n):
       for col in range(n):
-        coords = indices_to_screen(row, col, from_human)
+        coords = indices_to_screen(row, col, idx)
         color = -1
         for i in range(len(utils.COLORS)):
           if board[i][row][col]:
@@ -88,46 +93,56 @@ def main():
           print('Human clicked %d %d' % (row, col))
           if abs(previous_row - row) + abs(previous_col - col) == 1:
             print('Swapping (%d, %d) and (%d, %d)' % (row, col, previous_row, previous_col))
-            human_board.swap((row, col), (previous_row, previous_col))
-            new_reward = computer_board.ai_swap(method='dqn')
-            print('New reward %d' % (new_reward,))
+            boards[0].swap((row, col), (previous_row, previous_col))
+            # AI agents do the update.
+            for i in range(1, NUM_BOARDS):
+              agent_name = AGENTS[i]
+              new_reward = boards[i].ai_swap(method=agent_name)
+              print('New reward for %s is %d' % (agent_name, new_reward,))
             draw_histories = True
             previous_row, previous_col = -1, -1
           else:
             previous_row, previous_col = row, col
     screen.fill(pygame.color.Color('white'))
     # Draw the histories.
-    human_histories = human_board.get_histories()
-    computer_histories = computer_board.get_histories()
+    human_histories = boards[0].get_histories()
+    computer_histories = [boards[i].get_histories() for i in range(1, NUM_BOARDS)]
     if draw_histories:
       time_to_start_draw_histories = pygame.time.get_ticks()
-      time_to_stop_draw_histories = time_to_start_draw_histories + PAUSE * max(len(human_histories), len(computer_histories))
+      max_computer_histories = max(len(h) for h in computer_histories)
+      time_to_stop_draw_histories = time_to_start_draw_histories + PAUSE * max(len(human_histories), max_computer_histories)
       draw_histories = False
     font = pygame.font.Font('freesansbold.ttf', CELLSIZE)
-    human_text = font.render('Human score: %d' % (human_board.get_score(),), True, (0, 0, 0))
+    human_text = font.render('Human score: %d' % (boards[0].get_score(),), True, (0, 0, 0))
     human_text_rect = human_text.get_rect()
-    human_text_rect.center = ((HUMAN_X + CELLSIZE * (SIZE // 2)), (HUMAN_Y + CELLSIZE * (SIZE + 2)))
+    human_x, human_y = get_base_xy(0)
+    human_text_rect.center = ((human_x + CELLSIZE * (SIZE // 2)), (human_y + CELLSIZE * (SIZE + 2)))
     screen.blit(human_text, human_text_rect)
-    computer_text = font.render('Computer score: %d' % (computer_board.get_score(),), True, (0, 0, 0))
-    computer_text_rect = computer_text.get_rect()
-    computer_text_rect.center = ((COMPUTER_X + CELLSIZE * (SIZE // 2)), (COMPUTER_Y + CELLSIZE * (SIZE + 2)))
-    screen.blit(computer_text, computer_text_rect)
-    move_text = font.render('Number of moves: %d' % (human_board.num_swaps(),), True, (0, 0, 0))
+    for i in range(1, NUM_BOARDS):
+      computer_text = font.render('%s score: %d' % (AGENTS[i], boards[i].get_score(),), True, (0, 0, 0))
+      computer_text_rect = computer_text.get_rect()
+      computer_x, computer_y = get_base_xy(i)
+      computer_text_rect.center = ((computer_x + CELLSIZE * (SIZE // 2)), (computer_y + CELLSIZE * (SIZE + 2)))
+      screen.blit(computer_text, computer_text_rect)
+    move_text = font.render('Number of moves: %d' % (boards[0].num_swaps(),), True, (0, 0, 0))
     move_text_rect = move_text.get_rect()
-    move_text_rect.center = (COMPUTER_X, H_CELLSIZE)
+    move_text_rect.center = (CENTER_X, H_CELLSIZE)
     screen.blit(move_text, move_text_rect)
     if pygame.time.get_ticks() < time_to_stop_draw_histories:
       idx = (pygame.time.get_ticks() - time_to_start_draw_histories) // PAUSE
-      draw_board(screen, human_histories[idx] if idx < len(human_histories) else human_board.get_board(), from_human=True)
-      draw_board(screen, computer_histories[idx] if idx < len(computer_histories) else computer_board.get_board(), from_human=False)
+      draw_board(screen, human_histories[idx] if idx < len(human_histories) else boards[0].get_board(), 0)
+      for i in range(1, NUM_BOARDS):
+        draw_board(screen, computer_histories[i - 1][idx] if idx < len(computer_histories[i - 1]) else boards[i].get_board(), i)
       pygame.display.flip()
     else:
       # Draw the board.
-      draw_board(screen, human_board.get_board(), from_human=True)
-      draw_board(screen, computer_board.get_board(), from_human=False)
+      draw_board(screen, boards[0].get_board(), 0)
+      for i in range(1, NUM_BOARDS):
+        draw_board(screen, boards[i].get_board(), i)
       pygame.display.flip()
     clock.tick(60)
 
 
 if __name__ == '__main__':
   main()
+
