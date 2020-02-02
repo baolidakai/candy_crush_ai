@@ -10,10 +10,10 @@ python config_generator.py 200 10 5 config1.txt
 ```
 
 TODOs:
-* Enable more sxs, e.g. brute force
-* Implements Monte Carlo agent baseline
-* other candy types
-* Have an automatic eval pipeline
+* [P0] Try the newly trained model
+* [P1] Implements Monte Carlo agent baseline
+* [P1] Have an automatic eval pipeline
+* [P2] other candy types
 
 How to featurize: raw pixel vs my own representation
 Which model use
