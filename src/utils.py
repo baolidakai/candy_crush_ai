@@ -10,6 +10,7 @@ COLORS = ['blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black']
 COLUMNS = COLORS + ['v_strip', 'h_strip', 'color_bomb', 'candy']
 # Directions of neighbors.
 DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+AI_AGENTS = ['naive dqn', 'monte carlo', 'monte carlo dqn', 'brute force']
 
 def load_config_from_file(config_file):
   """Loads the config file into a binary matrix of M x N. Returns None on error."""

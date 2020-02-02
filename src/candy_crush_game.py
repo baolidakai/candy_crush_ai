@@ -1,29 +1,23 @@
 """Pygame controller for the game."""
+import candy_crush_board
 import math
 import os
 import pygame
 import sys
 import utils
-import candy_crush_board
 
 
 def main():
   demo_base = '../config/demo/'
   config_file = os.path.join(demo_base, 'config1.txt') if len(sys.argv) < 2 else os.path.join(demo_base, sys.argv[1])
   print('Loading from %s' % (config_file,))
-  AGENTS = ['human', 'naive dqn', 'monte carlo', 'monte carlo dqn', # First row
-            'brute force'] # Second row
+  AGENTS = ['human'] + utils.AI_AGENTS[:]
   NUM_BOARDS = len(AGENTS)
   # Gets human board and computer boards.
   boards = [candy_crush_board.CandyCrushBoard(config_file=config_file) for _ in range(NUM_BOARDS)]
   SIZE = boards[0].get_size()
   for board in boards:
     assert board.get_size() == SIZE
-  for i in range(NUM_BOARDS):
-    if AGENTS[i] == 'naive dqn':
-      boards[i].init_naive_dqn()
-    if AGENTS[i] == 'monte carlo dqn':
-      boards[i].init_monte_carlo_dqn()
   # Renders the two boards.
   pygame.init()
   screen = pygame.display.set_mode((1500, 1200))

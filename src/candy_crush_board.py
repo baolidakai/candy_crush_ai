@@ -52,9 +52,6 @@ class CandyCrushBoard(object):
     self._monte_carlo_B = 5
     # Whether to use random next colors, instead of using the config.
     self._random_colors = False
-    # Initializes DQN.
-    self._naive_dqn = DQNPrediction('naive_target_net.pt')
-    self._monte_carlo_dqn = DQNPrediction('monte_carlo_target_net.pt')
 
     # Fills the board with config.
     self.fill_board()
@@ -64,6 +61,12 @@ class CandyCrushBoard(object):
     self._reward = 0
     # Clears the history.
     self._histories.clear()
+
+    # Initializes DQN.
+    self._naive_dqn = DQNPrediction('naive_target_net.pt')
+    self._naive_dqn.init_dqn(self.get_numpy_board(), len(self.get_actions()))
+    self._monte_carlo_dqn = DQNPrediction('monte_carlo_target_net.pt')
+    self._monte_carlo_dqn.init_dqn(self.get_numpy_board(), len(self.get_actions()))
 
   def set_monte_carlo_B(self, monte_carlo_B):
     self._monte_carlo_B = monte_carlo_B
@@ -314,14 +317,6 @@ class CandyCrushBoard(object):
   def is_done(self):
     """Returns whether the game is done."""
     return self._swaps >= utils.MAX_SWAPS
-
-  def init_naive_dqn(self):
-    """Initializes DQN."""
-    self._naive_dqn.init_dqn(self.get_numpy_board(), len(self.get_actions()))
-
-  def init_monte_carlo_dqn(self):
-    """Initializes DQN."""
-    self._monte_carlo_dqn.init_dqn(self.get_numpy_board(), len(self.get_actions()))
 
   def predict_dqn(self, method='naive'):
     """Returns r1, c1, r2, c2 of the DQN agent. Method could be one of 'naive' and 'monte carlo'."""
