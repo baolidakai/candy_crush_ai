@@ -364,7 +364,6 @@ class CandyCrushBoard(object):
   def get_monte_carlo_score(self, action_index):
     total_scores = 0
     for b in range(self._monte_carlo_B):
-      print('Getting Monte Carlo score for %d' % (action_index,))
       total_scores += self.get_simulation_score(action_index)
     return float(total_scores) / float(self._monte_carlo_B)
 
@@ -389,6 +388,5 @@ class CandyCrushBoard(object):
     self._board = copy.deepcopy(backup_board)
     self._histories = copy.deepcopy(backup_histories)
     self._random_colors = False
-    print('Monte Carlo score is %d' % (score,))
     return score
 

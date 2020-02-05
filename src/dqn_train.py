@@ -4,8 +4,8 @@ import itertools
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-import pdb
 import random
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -138,15 +138,17 @@ def optimize_model():
   optimizer.step()
 
 
-num_episodes = 3000
+num_episodes = 300
 monte_carlo_B = 100
 USE_MONTE_CARLO = True
+start_time = time.time()
 for i_episode in range(num_episodes):
   board.reset()
   board.set_monte_carlo_B(monte_carlo_B)
   state = get_state(board)
   for t in itertools.count():
     print('Episode %d' % (i_episode,))
+    print('Elapsed time %d seconds' % (time.time() - start_time,))
     action = select_action(state)
     action_index = action.item()
     print('Taking action %d' % (action_index,))

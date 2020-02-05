@@ -20,3 +20,8 @@ for i in range(num_boards):
 for i in range(num_boards):
   print('Reward for %s: %f' % (agents[i], rewards[i]))
 
+with open('eval.txt', 'w') as fout:
+  for i in range(num_boards):
+    fout.write('Reward for %s: %f' % (agents[i], rewards[i]))
+    fout.write('\n')
+

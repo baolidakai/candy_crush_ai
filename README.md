@@ -25,3 +25,9 @@ Either try different architectures and do one experiment
 Or try existing architectures and more analysis
 
 
+Evaluation:
+Reward for naive dqn: 349
+Reward for monte carlo: 702
+Reward for monte carlo dqn: 349
+Reward for brute force: 157
+
