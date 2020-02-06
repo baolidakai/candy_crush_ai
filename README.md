@@ -16,18 +16,19 @@ TODOs:
 How to featurize: raw pixel vs my own representation
 Which model use
 
-consider good randomization technique
-
-Some other models:
-policy gradients (DDPG)
-
-Either try different architectures and do one experiment
-Or try existing architectures and more analysis
-
 
 Evaluation:
 Reward for naive dqn: 349
 Reward for monte carlo: 702
 Reward for monte carlo dqn: 349
 Reward for brute force: 157
+
+Notes:
+Consider randomized training.
+Try to at least match Monte Carlo.
+Investigate reason Monte Carlo DQN is worse.
+Milestone does not need result to be good, but best to have an explanation.
+Milestone: write a next step section, instead of leaving TODOs
+fine to dig deeper without look at other models.
+could consider learn from me.
 

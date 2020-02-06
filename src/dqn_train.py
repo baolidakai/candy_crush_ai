@@ -2,7 +2,6 @@ import candy_crush_board
 import collections
 import itertools
 import math
-import matplotlib.pyplot as plt
 import numpy as np
 import random
 import time
@@ -11,11 +10,13 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
+import sys
 from PIL import Image
 from dqn_base import resize, DQN
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device_type = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = torch.device(device_type)
 
 
 # https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
@@ -89,19 +90,6 @@ def select_action(state):
 
 episode_durations = []
 
-def plot_durations():
-  print('Plot durations')
-  plt.figure(2)
-  plt.clf()
-  durations_t = torch.tensor(episode_durations, dtype=torch.float)
-  plt.title('Training...')
-  plt.xlabel('Episode')
-  plt.ylabel('Duration')
-  plt.plot(durations_t.numpy())
-  plt.savefig('miao')
-  plt.show()
-  plt.pause(0.001)  # pause a bit so that plots are updated
-
 
 def optimize_model():
   if len(memory) < BATCH_SIZE:
@@ -138,12 +126,15 @@ def optimize_model():
   optimizer.step()
 
 
-num_episodes = 300
-monte_carlo_B = 100
+print('Example usage: python3 dqn_train.py 100 where 100 is number of episodes.')
+num_episodes = 1000 if len(sys.argv) < 2 else int(sys.argv[1])
+monte_carlo_B = 10
 USE_MONTE_CARLO = True
+NUM_CONFIGS = 100
 start_time = time.time()
 for i_episode in range(num_episodes):
-  board.reset()
+  config = 1 + (i_episode % NUM_CONFIGS)
+  board = candy_crush_board.CandyCrushBoard(config_file='../config/train/config%d.txt' % (config,))
   board.set_monte_carlo_B(monte_carlo_B)
   state = get_state(board)
   for t in itertools.count():
@@ -174,23 +165,15 @@ for i_episode in range(num_episodes):
     optimize_model()
     if done:
       episode_durations.append(t + 1)
-      plot_durations()
       break
   # Update the target network, copying all weights and biases in DQN
   if i_episode % TARGET_UPDATE == 0:
     target_net.load_state_dict(policy_net.state_dict())
 
 print('Complete')
-plt.show()
 
 target_net_path = 'monte_carlo_target_net.pt' if USE_MONTE_CARLO else 'naive_target_net.pt'
 policy_net_path = 'monte_carlo_policy_net.pt' if USE_MONTE_CARLO else 'naive_policy_net.pt'
-torch.save(target_net.state_dict(), target_net_path)
-torch.save(policy_net.state_dict(), policy_net_path)
-
-# To load
-# model = TheModelClass(*args, **kwargs)
-# model.load_state_dict(torch.load('target_net'))
-# model.eval()
-
+torch.save(target_net.state_dict(), device_type + '_' + target_net_path)
+torch.save(policy_net.state_dict(), device_type + '_' + policy_net_path)
 

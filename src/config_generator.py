@@ -4,7 +4,7 @@ import random
 import sys
 
 def main():
-  print('Example usage: python config_generator.py 200 10 5 config1.txt will write 100 rows, 10 digits per row, 5 colors to ../config/config1.txt')
+  print('Example usage: python config_generator.py 200 10 5 train/config1.txt will write 100 rows, 10 digits per row, 5 colors to ../config/train/config1.txt')
   assert len(sys.argv) == 5
   m = int(sys.argv[1])
   n = int(sys.argv[2])

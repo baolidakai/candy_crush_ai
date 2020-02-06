@@ -63,9 +63,9 @@ class CandyCrushBoard(object):
     self._histories.clear()
 
     # Initializes DQN.
-    self._naive_dqn = DQNPrediction('naive_target_net.pt')
+    self._naive_dqn = DQNPrediction('naive_policy_net.pt')
     self._naive_dqn.init_dqn(self.get_numpy_board(), len(self.get_actions()))
-    self._monte_carlo_dqn = DQNPrediction('monte_carlo_target_net.pt')
+    self._monte_carlo_dqn = DQNPrediction('monte_carlo_policy_net.pt')
     self._monte_carlo_dqn.init_dqn(self.get_numpy_board(), len(self.get_actions()))
 
   def set_monte_carlo_B(self, monte_carlo_B):
