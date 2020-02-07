@@ -1,4 +1,4 @@
-Reward for naive dqn: 349.000000
-Reward for monte carlo: 853.000000
-Reward for monte carlo dqn: 314.000000
-Reward for brute force: 157.000000
+Reward for naive dqn: 3.000000
+Reward for monte carlo: 22.000000
+Reward for monte carlo dqn: 9.000000
+Reward for brute force: 3.000000

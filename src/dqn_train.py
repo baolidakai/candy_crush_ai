@@ -44,8 +44,9 @@ class ReplayMemory(object):
     return len(self._memory)
 
 
-BATCH_SIZE = 128
-GAMMA = 0.999
+BATCH_SIZE = 5
+GAMMA = 0.99
+# 0.999
 EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 200
@@ -117,6 +118,8 @@ def optimize_model():
 
   # Compute Huber loss
   loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+  # loss = F.mse_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+  print('loss:', loss)
 
   # Optimize the model
   optimizer.zero_grad()
@@ -129,7 +132,7 @@ def optimize_model():
 print('Example usage: python3 dqn_train.py 100 where 100 is number of episodes.')
 num_episodes = 1000 if len(sys.argv) < 2 else int(sys.argv[1])
 monte_carlo_B = 10
-USE_MONTE_CARLO = True
+USE_MONTE_CARLO = False
 NUM_CONFIGS = 100
 start_time = time.time()
 for i_episode in range(num_episodes):
@@ -137,19 +140,18 @@ for i_episode in range(num_episodes):
   board = candy_crush_board.CandyCrushBoard(config_file='../config/train/config%d.txt' % (config,))
   board.set_monte_carlo_B(monte_carlo_B)
   state = get_state(board)
+  print('Episode %d' % (i_episode,))
+  print('Elapsed time %d seconds' % (time.time() - start_time,))
+  print('Average time %f seconds' % (float(time.time() - start_time) / float(i_episode) if i_episode else float('inf'),))
   for t in itertools.count():
-    print('Episode %d' % (i_episode,))
-    print('Elapsed time %d seconds' % (time.time() - start_time,))
     action = select_action(state)
     action_index = action.item()
-    print('Taking action %d' % (action_index,))
     # Simulated reward by Monte Carlo.
     monte_carlo_reward = board.get_monte_carlo_score(action_index)
     # Actual reward by taking the action.
     naive_reward = board.step(action_index)
     raw_reward = monte_carlo_reward if USE_MONTE_CARLO else float(naive_reward)
     reward = torch.tensor([raw_reward], device=device)
-    print('Getting reward %f' % (raw_reward,))
     done = board.is_done()
 
     # Observe new state

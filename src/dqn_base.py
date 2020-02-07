@@ -48,7 +48,7 @@ class DQNPrediction(object):
     init_screen = self.get_dqn_state(board)
     _, _, screen_height, screen_width = init_screen.shape
     target_net = DQN(screen_height, screen_width, n_actions).to(self._device)
-    target_net.load_state_dict(torch.load(self._model_path))
+    target_net.load_state_dict(torch.load(self._model_path, map_location=torch.device('cpu')))
     target_net.eval()
     self._dqn = target_net
 

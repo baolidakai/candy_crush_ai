@@ -9,9 +9,13 @@ To generate a random configuration:
 python config_generator.py 200 10 5 config1.txt
 ```
 
-TODOs:
-* [P1] Check the performance of Monte Carlo DQN
-* [P2] other candy types
+TODO:
+* Concentrate on instant reward training.
+* Make the game pseudo-random instead of random, e.g. use a hash of the current board.
+* Do not use resize.
+* Add more layers.
+* Train a new naive model using GPU.
+* [P1] Cache Monte Carlo eval.
 
 How to featurize: raw pixel vs my own representation
 Which model use

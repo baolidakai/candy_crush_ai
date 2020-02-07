@@ -63,9 +63,9 @@ class CandyCrushBoard(object):
     self._histories.clear()
 
     # Initializes DQN.
-    self._naive_dqn = DQNPrediction('naive_policy_net.pt')
+    self._naive_dqn = DQNPrediction('cpu_naive_policy_net.pt')
     self._naive_dqn.init_dqn(self.get_numpy_board(), len(self.get_actions()))
-    self._monte_carlo_dqn = DQNPrediction('monte_carlo_policy_net.pt')
+    self._monte_carlo_dqn = DQNPrediction('cuda_monte_carlo_policy_net.pt')
     self._monte_carlo_dqn.init_dqn(self.get_numpy_board(), len(self.get_actions()))
 
   def set_monte_carlo_B(self, monte_carlo_B):
@@ -270,13 +270,13 @@ class CandyCrushBoard(object):
       r1, c1, r2, c2 = self.predict_monte_carlo()
     else:
       raise Exception('Invalid method')
-    print('Swapping %d, %d and %d, %d' % (r1, c1, r2, c2))
+    # print('Swapping %d, %d and %d, %d' % (r1, c1, r2, c2))
     if r1 == -1:
       self.flush()
       self._swaps += 1
       return 0
     old_reward = self._reward
-    print('Before swapping reward %d' % (self._reward))
+    # print('Before swapping reward %d' % (self._reward))
     self.swap((r1, c1), (r2, c2))
     return self._reward - old_reward
 
