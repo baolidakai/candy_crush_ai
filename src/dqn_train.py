@@ -12,7 +12,8 @@ import torch.nn.functional as F
 import torchvision.transforms as T
 import sys
 from PIL import Image
-from dqn_base import resize, DQN
+from dqn_base import DQN
+import pdb
 
 
 device_type = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -56,9 +57,12 @@ board = candy_crush_board.CandyCrushBoard(config_file='../config/train/config1.t
 
 def get_state(board):
   raw_state = board.get_numpy_board()
+  # TODO(bowendeng): Resize in Python.
+  # pdb.set_trace()
   raw_state = np.ascontiguousarray(raw_state, dtype=np.float32)
   raw_state = torch.from_numpy(raw_state)
-  return resize(raw_state).unsqueeze(0).to(device)
+  return raw_state.unsqueeze(0).to(device)
+  # return raw_state.unsqueeze(0).to(device)
 
 init_screen = get_state(board)
 _, _, screen_height, screen_width = init_screen.shape
@@ -119,7 +123,7 @@ def optimize_model():
   # Compute Huber loss
   loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
   # loss = F.mse_loss(state_action_values, expected_state_action_values.unsqueeze(1))
-  print('loss:', loss)
+  print('loss:', loss.item())
 
   # Optimize the model
   optimizer.zero_grad()

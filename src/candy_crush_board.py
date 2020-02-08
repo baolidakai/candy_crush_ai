@@ -12,13 +12,13 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 from PIL import Image
-from dqn_base import resize, DQN, DQNPrediction
+from dqn_base import DQN, DQNPrediction
 import multiprocessing
 from multiprocessing import Queue
 
 
 class CandyCrushBoard(object):
-  def __init__(self, config_file):
+  def __init__(self, config_file=None):
     """Initializes a Candy Crush board.
 
     Args:
@@ -27,13 +27,15 @@ class CandyCrushBoard(object):
     """
     # _config contains a M x N matrix representing the
     # colors to drop.
-    self._num_colors = 5
-    assert config_file is not None
-    self._config_file = config_file
-    self._config = utils.load_config_from_file(config_file)
-    assert self._config is not None
-    self._M = len(self._config)
-    self._N = len(self._config[0])
+    self._num_colors = 7
+    # assert config_file is not None
+    # self._config_file = config_file
+    # self._config = utils.load_config_from_file(config_file)
+    # assert self._config is not None
+    # self._M = len(self._config)
+    # self._N = len(self._config[0])
+    self._M = 32
+    self._N = 32
     # _ptrs[i] represents the indices of next candy to drop.
     # If _ptrs[5] = 3, next candy to drop for column
     # 5 is _config[3][5].
@@ -51,8 +53,8 @@ class CandyCrushBoard(object):
     self._histories = []
     # Initializes Monte Carlo config.
     self._monte_carlo_B = 5
-    # Whether to use random next colors, instead of using the config.
-    self._random_colors = False
+    # Whether to use Monte Carlo sampling.
+    self._monte_carlo = False
 
     # Fills the board with config.
     self.fill_board()
@@ -63,11 +65,12 @@ class CandyCrushBoard(object):
     # Clears the history.
     self._histories.clear()
 
+  def init_dqn(self):
     # Initializes DQN.
     self._naive_dqn = DQNPrediction('cpu_naive_policy_net.pt')
     self._naive_dqn.init_dqn(self.get_numpy_board(), len(self.get_actions()))
-    self._monte_carlo_dqn = DQNPrediction('cuda_monte_carlo_policy_net.pt')
-    self._monte_carlo_dqn.init_dqn(self.get_numpy_board(), len(self.get_actions()))
+    # self._monte_carlo_dqn = DQNPrediction('cuda_monte_carlo_policy_net.pt')
+    # self._monte_carlo_dqn.init_dqn(self.get_numpy_board(), len(self.get_actions()))
 
   def set_monte_carlo_B(self, monte_carlo_B):
     self._monte_carlo_B = monte_carlo_B
@@ -84,13 +87,6 @@ class CandyCrushBoard(object):
       for col in range(self._N):
         rtn += str(self.get_color(row, col))
     return rtn
-
-  def get_deterministic_color(self):
-    """Gets the color by hashing the current board."""
-    raw_hash = blake2b(self.get_board_str().encode()).hexdigest()
-    color = ord(raw_hash[-1]) % self._num_colors
-    print(color)
-    return color
 
   def fill_new_color(self, col):
     """Returns a new color at col."""
@@ -198,8 +194,9 @@ class CandyCrushBoard(object):
     # Eliminates the block.
     block.sort()
     # Sets seed to make the future moves deterministic.
-    raw_hash = blake2b(self.get_board_str().encode()).hexdigest()
-    random.seed(ord(raw_hash[-1]))
+    if not self._monte_carlo:
+      raw_hash = blake2b(self.get_board_str().encode()).hexdigest()
+      random.seed(ord(raw_hash[-1]))
     intermediate_board = self.copy_board()
     for row, col in block:
       for channel in range(len(utils.COLUMNS)):
@@ -338,11 +335,11 @@ class CandyCrushBoard(object):
     return self._swaps >= utils.MAX_SWAPS
 
   def predict_dqn(self, method='naive'):
-    """Returns r1, c1, r2, c2 of the DQN agent. Method could be one of 'naive' and 'monte carlo'."""
-    if method == 'naive':
-      action_scores = self._naive_dqn.get_action_scores(self.get_numpy_board())
-    else:
-      action_scores = self._monte_carlo_dqn.get_action_scores(self.get_numpy_board())
+    """Returns r1, c1, r2, c2 of the DQN agent. Method could be 'naive'."""
+    assert method == 'naive'
+    action_scores = self._naive_dqn.get_action_scores(self.get_numpy_board())
+    # else:
+    #   action_scores = self._monte_carlo_dqn.get_action_scores(self.get_numpy_board())
     # Gets the best feasible score.
     best_action_index = 0
     max_score = float('-inf')
@@ -396,7 +393,7 @@ class CandyCrushBoard(object):
     # Computes the simulation score.
     original_reward = self._reward
     r1, c1, r2, c2 = self.get_action(action_index)
-    self._random_colors = True
+    self._monte_carlo = True
     self.swap((r1, c1), (r2, c2))
     new_reward = self._reward
     score = new_reward - original_reward
@@ -406,6 +403,6 @@ class CandyCrushBoard(object):
     self._swaps = backup_swaps
     self._board = copy.deepcopy(backup_board)
     self._histories = copy.deepcopy(backup_histories)
-    self._random_colors = False
+    self._monte_carlo = False
     return score
 

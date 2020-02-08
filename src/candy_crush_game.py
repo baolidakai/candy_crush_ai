@@ -18,6 +18,7 @@ def main():
   SIZE = boards[0].get_size()
   for board in boards:
     assert board.get_size() == SIZE
+    board.init_dqn()
   # Renders the two boards.
   pygame.init()
   screen = pygame.display.set_mode((1500, 1200))

@@ -11,20 +11,17 @@ python config_generator.py 200 10 5 config1.txt
 
 TODO:
 * Concentrate on instant reward training.
-* Make the game pseudo-random instead of random, e.g. use a hash of the current board.
-* Do not use resize.
+* Adds a tensorboard: https://pytorch.org/tutorials/intermediate/tensorboard\_tutorial.html
 * Add more layers.
+* Consider permutation invariance: add a loss on swapping two channels.
+* Plot average loss.
 * Train a new naive model using GPU.
 * [P1] Cache Monte Carlo eval.
-
-How to featurize: raw pixel vs my own representation
-Which model use
 
 
 Evaluation:
 Reward for naive dqn: 349
 Reward for monte carlo: 702
-Reward for monte carlo dqn: 349
 Reward for brute force: 157
 
 Notes:
