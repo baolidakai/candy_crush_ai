@@ -1,4 +1,5 @@
 """Class for Candy Crush game."""
+from hashlib import blake2b
 import collections
 import copy
 import utils
@@ -77,14 +78,29 @@ class CandyCrushBoard(object):
     if self._ptrs[col] == self._M:
       self._ptrs[col] = 0
 
+  def get_board_str(self):
+    rtn = ''
+    for row in range(self._N):
+      for col in range(self._N):
+        rtn += str(self.get_color(row, col))
+    return rtn
+
+  def get_deterministic_color(self):
+    """Gets the color by hashing the current board."""
+    raw_hash = blake2b(self.get_board_str().encode()).hexdigest()
+    color = ord(raw_hash[-1]) % self._num_colors
+    print(color)
+    return color
+
   def fill_new_color(self, col):
     """Returns a new color at col."""
-    if self._random_colors:
-      return random.randint(0, self._num_colors - 1)
-    else:
-      color = self._config[self._ptrs[col]][col]
-      self.advance_ptr(col)
-      return color
+    return random.randint(0, self._num_colors - 1)
+    # if self._random_colors:
+    #   return random.randint(0, self._num_colors - 1)
+    # else:
+    #   color = self._config[self._ptrs[col]][col]
+    #   self.advance_ptr(col)
+    #   return color
 
   def fill_board(self):
     """Fills the board with the config."""
@@ -181,6 +197,9 @@ class CandyCrushBoard(object):
       return False
     # Eliminates the block.
     block.sort()
+    # Sets seed to make the future moves deterministic.
+    raw_hash = blake2b(self.get_board_str().encode()).hexdigest()
+    random.seed(ord(raw_hash[-1]))
     intermediate_board = self.copy_board()
     for row, col in block:
       for channel in range(len(utils.COLUMNS)):
