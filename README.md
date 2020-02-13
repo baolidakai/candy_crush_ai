@@ -17,6 +17,7 @@ TODO:
 * Plot average loss.
 * Train a new naive model using GPU.
 * [P1] Cache Monte Carlo eval.
+* Consider policy gradient.
 
 
 Evaluation:
@@ -32,5 +33,13 @@ Milestone does not need result to be good, but best to have an explanation.
 Milestone: write a next step section, instead of leaving TODOs
 fine to dig deeper without look at other models.
 could consider learn from me.
+
+Try checking the gradients of the neural network, plot the norms of gradients. Try gradient clipping. Gradient should not be too big or too small.
+
+Try use more layers, maybe not use batch norm for Q-learning. Try weight normalization by openAI.
+
+Also consider changing data representation. Manually engineer the features. Add a mask, say number of same colors, or whether this is feasible action.
+
+Stick with current size.
 
 Test
