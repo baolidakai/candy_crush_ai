@@ -25,7 +25,7 @@ def main():
   clock = pygame.time.Clock()
   pygame.time.set_timer(pygame.USEREVENT, 1500)
   CENTER_X = 600
-  CELLSIZE = 28
+  CELLSIZE = 14
   BOARD_WIDTH = 300
   BOARD_HEIGHT = 350
   TOP_MARGIN = 30

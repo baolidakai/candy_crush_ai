@@ -14,6 +14,7 @@ import sys
 from PIL import Image
 from dqn_base import DQN
 import pdb
+from dqn_viz import make_dot
 
 
 device_type = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -57,12 +58,9 @@ board = candy_crush_board.CandyCrushBoard(config_file='../config/train/config1.t
 
 def get_state(board):
   raw_state = board.get_numpy_board()
-  # TODO(bowendeng): Resize in Python.
-  # pdb.set_trace()
   raw_state = np.ascontiguousarray(raw_state, dtype=np.float32)
   raw_state = torch.from_numpy(raw_state)
   return raw_state.unsqueeze(0).to(device)
-  # return raw_state.unsqueeze(0).to(device)
 
 init_screen = get_state(board)
 _, _, screen_height, screen_width = init_screen.shape
@@ -95,6 +93,8 @@ def select_action(state):
 
 episode_durations = []
 
+visualized = False
+loss_value = 0
 
 def optimize_model():
   if len(memory) < BATCH_SIZE:
@@ -110,6 +110,14 @@ def optimize_model():
   action_batch = torch.cat(batch.action)
   reward_batch = torch.cat(batch.reward)
 
+  # Visualize code.
+  global visualized
+  if not visualized:
+    y = policy_net(state_batch)
+    g = make_dot(y, policy_net.state_dict())
+    g.view()
+    visualized = True
+
   # Compute Q(s_t, a) - the model computes Q(s_t),
   # then we select columns of actions taken.
   state_action_values = policy_net(state_batch).gather(1, action_batch)
@@ -123,7 +131,9 @@ def optimize_model():
   # Compute Huber loss
   loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
   # loss = F.mse_loss(state_action_values, expected_state_action_values.unsqueeze(1))
-  print('loss:', loss.item())
+  # print('loss:', loss.item())
+  global loss_value
+  loss_value = loss.item()
 
   # Optimize the model
   optimizer.zero_grad()
@@ -139,6 +149,7 @@ monte_carlo_B = 10
 USE_MONTE_CARLO = False
 NUM_CONFIGS = 100
 start_time = time.time()
+average_losses = []
 for i_episode in range(num_episodes):
   config = 1 + (i_episode % NUM_CONFIGS)
   board = candy_crush_board.CandyCrushBoard(config_file='../config/train/config%d.txt' % (config,))
@@ -147,6 +158,8 @@ for i_episode in range(num_episodes):
   print('Episode %d' % (i_episode,))
   print('Elapsed time %d seconds' % (time.time() - start_time,))
   print('Average time %f seconds' % (float(time.time() - start_time) / float(i_episode) if i_episode else float('inf'),))
+  total_loss = 0.0
+  total_count = 0
   for t in itertools.count():
     action = select_action(state)
     action_index = action.item()
@@ -169,8 +182,14 @@ for i_episode in range(num_episodes):
 
     # Perform one step of the optimization
     optimize_model()
+    total_loss += loss_value
+    total_count += 1
+
     if done:
       episode_durations.append(t + 1)
+      average_loss = total_loss / total_count if total_count else float('inf')
+      average_losses.append(average_loss)
+      print('average loss:', average_loss)
       break
   # Update the target network, copying all weights and biases in DQN
   if i_episode % TARGET_UPDATE == 0:
@@ -182,4 +201,9 @@ target_net_path = 'monte_carlo_target_net.pt' if USE_MONTE_CARLO else 'naive_tar
 policy_net_path = 'monte_carlo_policy_net.pt' if USE_MONTE_CARLO else 'naive_policy_net.pt'
 torch.save(target_net.state_dict(), device_type + '_' + target_net_path)
 torch.save(policy_net.state_dict(), device_type + '_' + policy_net_path)
+
+# Write average losses to file.
+with open('average_losses.txt', 'w') as fout:
+  for average_loss in average_losses:
+    fout.write(str(average_loss) + '\n')
 
